@@ -1,0 +1,62 @@
+# =========================================================================
+# DATA-EXCLUSION GUARD — this repository ships CODE ONLY.
+# No individual-level / controlled-access data is committed. See DATA_AVAILABILITY.md.
+# The patterns below are a safety net so data files cannot be added by accident.
+# =========================================================================
+
+# Tabular / matrix / array data
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.npy
+*.npz
+*.parquet
+*.feather
+
+# Single-cell / genomics containers
+*.h5
+*.h5ad
+*.hdf5
+*.loom
+*.rds
+*.rda
+*.mtx
+*.mtx.gz
+*.gz
+*.bam
+*.sam
+*.fastq
+*.fq
+*.vcf
+
+# Figures / documents / design assets (kept out of the code repo)
+*.pdf
+*.ai
+*.eps
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.svg
+*.docx
+*.pptx
+
+# Common data directory names
+data/
+raw/
+inputs/
+outputs/
+processed/
+
+# Environment / OS / editor
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.Rhistory
+.Rproj.user/
+.ipynb_checkpoints/

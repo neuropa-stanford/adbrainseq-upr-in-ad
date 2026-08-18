@@ -1,0 +1,12 @@
+# Python dependencies for the ADBrainSeq (UPR-in-AD) analysis and figure code.
+# Pin to your environment as needed; versions below are lower bounds known to work.
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
+matplotlib-venn>=0.11
+openpyxl>=3.1
+pypdf>=4.0
+python-docx>=1.1
+Pillow>=10.0
+anndata>=0.10
+# R (separate): the GSVA enrichment step (code/r2q2_gsva.R) requires Bioconductor 'GSVA'.
