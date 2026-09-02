@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({"font.family": "Arial", "font.sans-serif": ["Arial"], "axes.unicode_minus": False,
                      "pdf.fonttype": 42, "ps.fonttype": 42})
 from matplotlib.gridspec import GridSpec
-from scipy.stats import kruskal
+from scipy.stats import f_oneway
 
 DRD = os.path.dirname(os.path.abspath(__file__)); OUTDIR = os.path.dirname(DRD); SP = DRD
 SENSORS = [("EIF2AK3", "PERK"), ("ERN1", "IRE1"), ("ATF6", "ATF6")]
@@ -49,16 +49,17 @@ for g, _ in SENSORS:
                 if lin > 0 and low_mean > 0: Sfc[g][c][gr].append(np.log2(lin / low_mean))
                 else: Sund[g][c][gr] += 1
 
-DATA = [("Mathys 2019 (ROSMAP, prefrontal cortex)", Mfc, Mlin, Mund),
-        ("SEA-AD (Allen, middle temporal gyrus) - independent reproduction", Sfc, Slin, Sund)]
+DATA = [("Mathys 2019", Mfc, Mlin, Mund),
+        ("SEA-AD", Sfc, Slin, Sund)]
 
 fig = plt.figure(figsize=(12.0, 15.6))
 gs = GridSpec(6, 4, figure=fig, left=0.085, right=0.99, top=0.935, bottom=0.035, hspace=0.55, wspace=0.14)
+panel_axes = {}
 for bk, (hdr, fc, lin, und) in enumerate(DATA):
     for si, (gene, alias) in enumerate(SENSORS):
         rr = bk*3 + si
         for ci, (ct, ctlab, col) in enumerate(CELLS):
-            ax = fig.add_subplot(gs[rr, ci])
+            ax = fig.add_subplot(gs[rr, ci]); panel_axes[(rr, ci)] = ax
             ax.axhspan(-BAND, BAND, color="#f4f4f4", zorder=0)
             ax.axhline(0, color="#999", lw=0.9, ls="--", zorder=1)
             vlists = [np.array(fc[gene][ct][gr]) for gr in GRPS]
@@ -71,16 +72,18 @@ for bk, (hdr, fc, lin, und) in enumerate(DATA):
                 v = vlists[pos]
                 if len(v):
                     jit = (np.random.RandomState(bk*80+si*20+ci*3+pos).rand(len(v)) - 0.5) * 0.22
-                    ax.scatter(pos + jit, v, s=12, color=col, edgecolor="white", linewidth=0.4, zorder=3)
+                    vc = np.clip(v, YLIM[0]+0.06, YLIM[1]-0.06)   # keep every dot inside the panel (some log2FC exceed ±2)
+                    ax.scatter(pos + jit, vc, s=12, color=col, edgecolor="white", linewidth=0.4, zorder=3, clip_on=True, rasterized=True)
                     ax.hlines(v.mean(), pos-0.24, pos+0.24, color="#222", lw=1.6, zorder=4)
                 nu = und[gene][ct][gr]
                 if nu:
                     jit = (np.random.RandomState(9+bk*80+si*20+ci*3+pos).rand(nu) - 0.5) * 0.22
-                    ax.scatter(pos + jit, np.full(nu, FLOOR), s=13, facecolors="none", edgecolors=col, linewidth=0.8, zorder=3)
+                    ax.scatter(pos + jit, np.full(nu, FLOOR), s=13, facecolors="none", edgecolors=col, linewidth=0.8, zorder=3, clip_on=True, rasterized=True)
             gl = [np.array(lin[gene][ct][gr]) for gr in GRPS]
             if all(len(x) >= 3 for x in gl):
-                p = kruskal(*gl).pvalue
-                ax.text(1, YLIM[1]-0.12, f"KW {pstar(p)}", ha="center", va="top", fontsize=7, color="#555")
+                st = pstar(f_oneway(*gl).pvalue)
+                if st != "ns":   # one-way ANOVA across the 3 Braak groups; show only significant stars
+                    ax.text(1, YLIM[1]-0.08, st, ha="center", va="top", fontsize=11, fontweight="bold")
             ax.set_ylim(*YLIM); ax.set_xlim(-.6, 2.6); ax.set_xticks([0, 1, 2])
             ax.set_xticklabels([f"{GLAB[i]}\n(n={len(fc[gene][ct][gr])+und[gene][ct][gr]})" for i, gr in enumerate(GRPS)], fontsize=6.6)
             ax.tick_params(labelsize=7, length=0)
@@ -91,5 +94,20 @@ for bk, (hdr, fc, lin, und) in enumerate(DATA):
     y = 0.952 if bk == 0 else 0.475
     fig.text(0.085, y, hdr, fontsize=11.5, fontweight="bold", ha="left")
 
+# panel letters A..X at each panel's top-left corner (row-major: A-D row0 ... U-X row5)
+import string
+fig.canvas.draw()
+_LET = string.ascii_uppercase
+_k = 0
+for _rr in range(6):
+    for _ci in range(4):
+        _p = panel_axes[(_rr, _ci)].get_position()
+        fig.text(max(_p.x0 - 0.020, 0.002), min(_p.y1 + 0.004, 0.999), _LET[_k],
+                 fontsize=12, fontweight="bold", va="bottom", ha="left")
+        _k += 1
+
 pdf = os.path.join(OUTDIR, "Figure_UPRsensor_flat_Mathys_SEAAD_20260827.pdf")
-fig.savefig(pdf, facecolor="white"); print("wrote", pdf)
+fig.savefig(pdf, facecolor="white", dpi=600)   # dot layer rasterized at 600 dpi -> clips cleanly in every viewer
+import shutil
+shutil.copyfile(pdf, os.path.join(OUTDIR, "Figure_UPRsensor_flat_Mathys_SEAAD_20260827.ai"))
+print("wrote", pdf, "| panel letters A-X")
